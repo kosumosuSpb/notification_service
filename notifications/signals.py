@@ -12,7 +12,4 @@ def create_mailing(**kwargs):
 
     # таск на создание периодической рассылки по переданному id
     # чтобы вытащить его из БД уже со всеми связями с помощью селери
-    print(f'===> id объекта: {instance.pk}, START')
-    make_mailing.apply_async((instance.id,))
-    print(f'===> id объекта: {instance.pk}, STOP')
-
+    make_mailing.delay(instance.id)

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'notifications.apps.NotificationsConfig',
     'rest_framework',
+    'django_celery_beat',
 
 ]
 
@@ -64,6 +65,9 @@ CELERY_RESULT_BACKEND = 'redis://:FaUmx3YAWwHTqMcRhKSithVxmSP2hPew@redis-14990.c
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+# указываем celery На планировщик из django-celery-beat
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 
 TEMPLATES = [
