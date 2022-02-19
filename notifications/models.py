@@ -8,13 +8,9 @@ class Mailing(models.Model):
     start_datetime = models.DateTimeField()  # дата и время запуска рассылки (формат: yyyy-mm-dd HH:MM:SS.mcs)
     text = models.TextField()  # текст сообщения для доставки клиенту
     stop_datetime = models.DateTimeField()  # дата и время окончания рассылки
-    status = models.BooleanField(default=False)  # статус рассылки. Зависит от того, указаны ли теги и операторы
     tags = models.ManyToManyField('Tag', related_name='mailings', blank=True)  # фильтр тегов клиентов для рассылки
     operators = models.ManyToManyField('Operator', related_name='mailings', blank=True)  # фильтр операторов клиентов для рассылки
     # messages - FK
-
-    def __str__(self):
-        return f'Mailing: {self.id}, {self.text[:10]}'
 
 
 # Сущность "клиент"
@@ -29,9 +25,6 @@ class Client(models.Model):
     tag = models.ForeignKey('Tag', on_delete=models.CASCADE, related_name='clients', blank=True, null=True)  # тег (произвольная метка)
     # messages - FK
 
-    def __str__(self):
-        return f'id: {self.id}: {self.operator.name} {self.phone_number}'
-
     # переопределяем метод save для автозаполнения поля "Оператор"
     def save(self, *args, **kwargs):
         code = self.phone_number[1:4]  # берём цифры номера с 1 по 3
@@ -42,13 +35,10 @@ class Client(models.Model):
 # Сущность "сообщение" - для логов, сюда складывается конкретный кейс с отправкой
 class Message(models.Model):
     create_datetime = models.DateTimeField(auto_now_add=True)  # дата и время создания
-    sended_datetime = models.DateTimeField()  # дата и время отправки
+    sended_datetime = models.DateTimeField(blank=True, null=True)  # дата и время отправки
     sended = models.BooleanField(default=False)  # статус отправки (отправлено?)
     mailing = models.ForeignKey(Mailing, blank=True, on_delete=models.CASCADE, related_name='messages')  # id рассылки, в рамках которой было отправлено сообщение
     client = models.ForeignKey(Client, blank=True, on_delete=models.CASCADE, related_name='messages')  # id клиента, которому отправили
-
-    def __str__(self):
-        return f'Message: {self.id}, {self.client.phone_number}, {self.mailing.text}'
 
 
 # сущность "оператор"
@@ -65,15 +55,9 @@ class Operator(models.Model):
     # clients - FK
     # mailings - FK
 
-    def __str__(self):
-        return self.name
-
 
 # сущность "тег"
 class Tag(models.Model):
     name = models.CharField(max_length=25, unique=True)
     # clients - FK
     # mailings - FK
-
-    def __str__(self):
-        return self.name

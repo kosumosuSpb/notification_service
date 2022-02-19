@@ -5,7 +5,7 @@ from .models import *
 class MailingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mailing
-        fields = ['start_datetime', 'stop_datetime', 'text', 'tags', 'operators']
+        fields = ['id', 'start_datetime', 'stop_datetime', 'text', 'tags', 'operators']
 
 
 class ClientSerializer(serializers.ModelSerializer):

@@ -57,14 +57,13 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'notification_service.urls'
 
-# Вариант для облачного редиса
-# формат: redis://юзернейм(у_нас_тут_пустой):пароль@эндпоинт:порт/0
-# сделано исключительно ради теста. В продакшене разумеется нужно использовать локальный редис
-CELERY_BROKER_URL = 'redis://:FaUmx3YAWwHTqMcRhKSithVxmSP2hPew@redis-14990.c293.eu-central-1-1.ec2.cloud.redislabs.com:14990/0'
-CELERY_RESULT_BACKEND = 'redis://:FaUmx3YAWwHTqMcRhKSithVxmSP2hPew@redis-14990.c293.eu-central-1-1.ec2.cloud.redislabs.com:14990/0'
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
+# celery settings
+CELERY_BROKER_URL = 'redis://localhost:6379'  # URL брокера сообщений (Redis).
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'  # хранилище результатов выполнения задач
+CELERY_ACCEPT_CONTENT = ['application/json']  # допустимый формат данных
+CELERY_TASK_SERIALIZER = 'json'  # метод сериализации задач
+CELERY_RESULT_SERIALIZER = 'json'  # метод сериализации результатов
+
 
 # указываем celery На планировщик из django-celery-beat
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
