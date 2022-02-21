@@ -24,3 +24,4 @@ sqlparse==0.4.2
 vine==5.0.0
 wcwidth==0.2.5
 wrapt==1.13.3
+requests~=2.27.1

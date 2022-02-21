@@ -10,6 +10,12 @@ def create_mailing(**kwargs):
     instance = kwargs['instance']  # объект Mailing
     created = kwargs['created']  # Bool
 
-    # таск на создание периодической рассылки по переданному id
-    # чтобы вытащить его из БД уже со всеми связями с помощью селери
-    make_mailing.delay(instance.id)
+    # если рассылка создана:
+    if created:
+        # таск на создание периодической рассылки по переданному id
+        # чтобы вытащить его из БД уже со всеми связями с помощью селери
+        make_mailing.delay(instance.id)
+
+    # если просто изменена:
+    else:
+        pass

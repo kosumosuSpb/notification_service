@@ -21,3 +21,12 @@ app = Celery('notification_service')
 # namespace='CELERY' - в данном случае говорит о том, что применятся будут только
 # те настройки из файла settings.py которые начинаются с ключевого слова CELERY
 app.config_from_object('django.conf:settings', namespace="CELERY")
+
+# запуск таска на проверку того, что не отправлено и запуск отправки
+app.conf.beat_schedule = {
+    'check_and_resend_every_hour': {
+        'task': 'notifications.tasks.check_and_resend',
+        'schedule': crontab(hour=1),
+        # 'args': (agrs),
+    },
+}

@@ -10,6 +10,8 @@ class Mailing(models.Model):
     stop_datetime = models.DateTimeField()  # дата и время окончания рассылки
     tags = models.ManyToManyField('Tag', related_name='mailings', blank=True)  # фильтр тегов клиентов для рассылки
     operators = models.ManyToManyField('Operator', related_name='mailings', blank=True)  # фильтр операторов клиентов для рассылки
+    finished = models.BooleanField(default=False)
+    expired = models.BooleanField(default=False)
     # messages - FK
 
 
@@ -37,6 +39,7 @@ class Message(models.Model):
     create_datetime = models.DateTimeField(auto_now_add=True)  # дата и время создания
     sended_datetime = models.DateTimeField(blank=True, null=True)  # дата и время отправки
     sended = models.BooleanField(default=False)  # статус отправки (отправлено?)
+    expired = models.BooleanField(default=False)
     mailing = models.ForeignKey(Mailing, blank=True, on_delete=models.CASCADE, related_name='messages')  # id рассылки, в рамках которой было отправлено сообщение
     client = models.ForeignKey(Client, blank=True, on_delete=models.CASCADE, related_name='messages')  # id клиента, которому отправили
 

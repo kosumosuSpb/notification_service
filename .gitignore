@@ -1,3 +1,5 @@
 /uvenv/
 /venv/
 .idea
+/dump.rdb
+/old_requirements.txt
