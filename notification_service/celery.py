@@ -1,8 +1,6 @@
 import os
 from celery import Celery
 from celery.schedules import crontab
-from celery import shared_task
-from django.conf import settings
 
 
 # этот код скопирован с manage.py
@@ -22,11 +20,12 @@ app = Celery('notification_service')
 # те настройки из файла settings.py которые начинаются с ключевого слова CELERY
 app.config_from_object('django.conf:settings', namespace="CELERY")
 
-# запуск таска на проверку того, что не отправлено и запуск отправки
+# расписание на запуск таска, который вытаскивает рассылки и запускает рассылку тех,
+# что должны быть отправлены, но ещё не завершены, при этом ещё не просрочены
 app.conf.beat_schedule = {
     'check_and_resend_every_hour': {
-        'task': 'notifications.tasks.check_and_resend',
-        'schedule': crontab(hour=1),
+        'task': 'notifications.tasks.check_and_send',
+        'schedule': crontab(minute=1),
         # 'args': (agrs),
     },
 }

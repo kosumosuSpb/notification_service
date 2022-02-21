@@ -1,67 +1,26 @@
 from celery import shared_task
 from .models import Mailing, Client, Message
 from django.db.models import Q
-from django_celery_beat.models import PeriodicTask, CrontabSchedule
 from datetime import datetime
 import json
 import requests
 
 
-@shared_task()
-def make_mailing(mailing_id: int, *args, **kwargs):
+def send_mails(mailing):
     """
-    Создаёт рассылку, как периодическую задачу, используя id рассылки
-    достаёт рассылку, вытаскивает клиентов по тегам и операторам.
+    Отправка рассылки
 
-    :param mailing_id: id объекта рассылки
+    Принимает объект рассылки, из него - теги и операторов
+    по ним фильтрует клиентов и запускает рассылку по ним.
+
+    Если всё отправилось и вернуло ответ True,
+    то рассылка помечается, как finished = True
+
+    :param mailing: объект рассылки
     :return: None
     """
-    # достаём рассылку
-    mailing = Mailing.objects.get(pk=mailing_id)
-
-    # расписание запуска таска
-    schedule = CrontabSchedule.objects.create(
-        minute=mailing.start_datetime.minute,
-        hour=mailing.start_datetime.hour,
-        # day_of_week='*',
-        day_of_month=mailing.start_datetime.day,
-        month_of_year=mailing.start_datetime.month,
-    )
-
-    # создание таска на рассылку
-    mailing_task = PeriodicTask.objects.create(
-        crontab=schedule,
-        name=f'Mailing task {mailing.id}',
-        task='send_mails',
-        # args=json.dumps([]),
-        kwargs=json.dumps({'mailing_id': mailing_id}),
-        expires=mailing.stop_datetime
-    )
-
-    print('=== make_mailing task ====>', mailing_task.__dict__)
-
-    # если текущая дата больше даты запуска, но меньше даты окончания рассылки:
-    if mailing.start_datetime < datetime.now() < mailing.stop_datetimes:
-        # то запустить эту таску
-        mailing_task.delay()
-
-
-@shared_task(name='send_mails')
-def send_mails(mailing_id: int):
-    """
-    Подготовка рассылки
-
-    Достаёт объект рассылки, из него - теги и операторов
-    по ним фильтрует клиентов и запускает рассылку по ним
-
-    :param mailing_id: id рассылки
-    :return: None
-    """
-    # получить клиентов, текст, временной интервал рассылки,
-    # пройтись по клиентам и разослать сообщения
-    # достаём рассылку
-    print(f'=== send_mails task starts === with mailing id: ===> {mailing_id} <===')
-    mailing = Mailing.objects.get(pk=mailing_id)
+    # DEBUG
+    print(f'=== send_mails task starts === with mailing id: ===> {mailing.id} <===')
 
     # достаём фильтры для рассылки
     tags = mailing.tags.all()
@@ -75,34 +34,46 @@ def send_mails(mailing_id: int):
     print('===> START send_mails <===')
     print(clients, mailing.text)
 
-    for client in clients:
-        # если передать самого клиента, то упадёт в исключение:
-        # kombu.exceptions.EncodeError: Object of type Client is not JSON serializable
-        send_client.apply_async([client.id, mailing.id])
+    # перебор клиентов, запуск рассылки по ним и возврат ответов:
+    # если все True, то рассылка завершена и её можно закрывать
+    finished = all([send_client(client, mailing) for client in clients])
 
     # DEBUG
-    print('===> FINISHED send_mails <===')
+    print('===> END send_mails <===')
+    print(f'Finished: {finished}')
+
+    mailing.finished = True if finished else False
+    mailing.save()
 
 
-@shared_task(name='send_client')
-def send_client(client_id, mailing_id):
+# функция рассылки сообщения конкретному клиенту
+def send_client(client, mailing):
     """
-    отправка сообщения одному клиенту через внешний АПИ сервис c JWT-авторизацией
+    функция отправки сообщения одному клиенту
+    через внешний АПИ сервис c JWT-авторизацией
+
+    адрес:
     https://probe.fbrq.cloud/v1/send/{msgId}
+
+    формат:
     {
       "id": 0,
       "phone": 0,
       "text": "string"
     }
+
+    :param client: объект клиента
+    :param mailing: объект рассылки
+    :return: True, если успех, False, - если нет
     """
-    client = Client.objects.get(pk=client_id)
-    mailing = Mailing.objects.get(pk=mailing_id)
     TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NzYxNDQ2NzMsImlzcyI6ImZhYnJpcXVlIiwibmFtZSI6ImtvbnN0YW50aW4uY2hlcm5vdiJ9.yx543hnuCBuib8ZlWmtmYq7EanWLAHwdkp7zYtd9dq8'
 
     # создаём экземпляр сообщения для отчётов
     # если он уже существует, то просто извлекаем из БД
     message, created = Message.objects.get_or_create(mailing=mailing, client=client)
-    message.save()
+
+    if created:
+        message.save()
 
     # DEBUG
     print(f'--- Message {message.id} created: {message.__dict__} --- ')
@@ -112,7 +83,10 @@ def send_client(client_id, mailing_id):
     print(client, mailing)
 
     # подготовка и отправка рассылки клиенту
+    # адрес внешнего сервиса отправки
     url = 'https://probe.fbrq.cloud/v1/send/'
+
+    # заголовки и авторизация
     headers = {
         'Authorization': 'Bearer ' + TOKEN,
         'content-type': 'application/json'
@@ -127,24 +101,50 @@ def send_client(client_id, mailing_id):
         }
     )
 
-    # отправляем данные, принимаем ответ
-    response = requests.post(url=url + message.id, data=data, headers=headers)
-
-    if response.status_code == 200:
-        # Отмечаем, что отправка прошла успешно
-        message.sended_datetime = datetime.now()
-        message.sended = True
-        message.save()
-
-        # DEBUG
-        print(f'--- Message {message.id} sended: {message.__dict__} --- ')
-
+    try:
+        # отправляем данные, принимаем ответ, ждём 5 секунд
+        response = requests.post(url=url + message.id, data=data, headers=headers, timeout=5)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f'HTTPError: {e}')
+        return False
+    except Exception as e:
+        print(f'Ошибка: {e}')
+        return False
     else:
-        # DEBUG #
-        print(f'Cant send Mailing {mailing.id}, response is: {response}')
+        if response.status_code == requests.codes.ok:
+            # Отмечаем, что отправка прошла успешно
+            message.sended_datetime = datetime.now()
+            message.sended = True
+            message.save()
+
+            # DEBUG
+            print(f'--- Message {message.id} sended: {message.__dict__} --- ')
+
+            return True
 
 
-# таск, который каждый час запускает рассылку того, что не смогло отправиться
-@shared_task(name='check_and_resend')
-def check_and_resend():
-    pass
+    # DEBUG #
+    print(f'Cant send Mailing {mailing.id}, response is: {response}')
+    return False
+
+
+# таск для перебора рассылок и отправки не отправленных
+@shared_task()
+def check_and_send():
+    """
+    Перебирает рассылки и рассылает те, которые уже нужно и которые не просрочены
+
+    :return:
+    """
+    # собираем не отправленные рассылки, которые уже пора отправлять
+    mailings_to_send = Mailing.objects.filter(finished=False, start_datetime__lte=datetime.now(), expired=False)
+
+    # проходим по ним и запускаем на отправку, если они не просрочены
+    for mailing in mailings_to_send:
+        if mailing.stop_datetime > datetime.now():
+            send_mails(mailing)
+        # если просрочены - помечаем, чтобы больше не трогать
+        else:
+            mailing.expired = True
+            mailing.save()
