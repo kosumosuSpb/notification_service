@@ -2,6 +2,9 @@ from django.shortcuts import render
 from .models import *
 from .serializers import *
 from rest_framework import generics, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 
 
 class MailingViewSet(viewsets.ModelViewSet):
@@ -11,6 +14,21 @@ class MailingViewSet(viewsets.ModelViewSet):
     """
     queryset = Mailing.objects.all()
     serializer_class = MailingSerializer
+
+    # вывод статистики по отдельной странице
+    @action(detail=True)
+    def stat(self, request, pk=None):
+        queryset = Mailing.objects.all()
+        mailing = get_object_or_404(queryset, pk=pk)
+        serializer = MailingStatSerializer(mailing)
+        return Response(serializer.data)
+
+    # вывод статистики по всем рассылкам
+    @action(detail=False)
+    def allstat(self, request):
+        queryset = Mailing.objects.all()
+        serializer = MailingStatSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ClientViewSet(viewsets.ModelViewSet):

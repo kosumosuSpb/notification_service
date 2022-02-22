@@ -1,18 +1,44 @@
 from django.core.validators import RegexValidator
 from django.db import models
-from django.db.models import Q
+from datetime import datetime
 
 
 # Сущность "рассылка"
+from django.utils import timezone
+
+
 class Mailing(models.Model):
     start_datetime = models.DateTimeField()  # дата и время запуска рассылки (формат: yyyy-mm-dd HH:MM:SS.mcs)
     text = models.TextField()  # текст сообщения для доставки клиенту
     stop_datetime = models.DateTimeField()  # дата и время окончания рассылки
+    finished_datetime = models.DateTimeField(blank=True, null=True)  # дата и время завершения (для статистики)
     tags = models.ManyToManyField('Tag', related_name='mailings', blank=True)  # фильтр тегов клиентов для рассылки
     operators = models.ManyToManyField('Operator', related_name='mailings', blank=True)  # фильтр операторов клиентов для рассылки
     finished = models.BooleanField(default=False)  # рассылка завершена? все сообщения отправлены?
     expired = models.BooleanField(default=False)  # рассылка просрочена?
     # messages - FK
+
+    @property
+    def duration(self):
+        return (
+            None if self.start_datetime > datetime.now(tz=timezone.utc) else
+            self.finished_datetime - self.start_datetime if self.finished and not self.expired else
+            self.stop_datetime - self.start_datetime if not self.finished and self.expired else
+            datetime.now(tz=timezone.utc) - self.start_datetime if not self.finished and not self.expired else
+            None
+        )
+
+    @property
+    def unsended_messages(self):
+        return len(self.messages.filter(sended=False))
+
+    @property
+    def sended_messages(self):
+        return len(self.messages.filter(sended=True))
+
+    @property
+    def created_messages(self):
+        return len(self.messages.all())
 
 
 # Сущность "клиент"
@@ -30,7 +56,7 @@ class Client(models.Model):
     # переопределяем метод save для автозаполнения поля "Оператор"
     def save(self, *args, **kwargs):
         code = self.phone_number[1:4]  # берём цифры номера с 1 по 3
-        self.operator = Operator.objects.get(code=code)  # определяем оператора
+        self.operator, created = Operator.objects.get_or_create(code=code, defaults={'name': code})  # определяем оператора (если такого ещё нет - создаём)
         super().save()  # сохраняем объект
 
 

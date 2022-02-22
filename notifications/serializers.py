@@ -8,6 +8,17 @@ class MailingSerializer(serializers.ModelSerializer):
         fields = ['id', 'start_datetime', 'stop_datetime', 'text', 'tags', 'operators']
 
 
+class MailingStatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Mailing
+        fields = [
+            'id', 'text', 'tags', 'operators',
+            'start_datetime', 'finished_datetime', 'stop_datetime',
+            'duration',
+            'created_messages', 'sended_messages', 'unsended_messages',
+        ]
+
+
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client

@@ -29,6 +29,9 @@ def send_mails(mailing):
     # используем Q-объекты, чтобы искать сразу по двум параметрам с помощью оператора | (OR)
     # получаем кверисет клиентов для рассылки
     clients = Client.objects.filter(Q(tag__in=tags) | Q(operator__in=operators))
+    # берём только тех клиентов, которым не отсылали ничего, либо пытались, но не получилось
+    clients = clients.filter(Q(messages=None) | Q(messages__sended=False))
+
 
     # DEBUG
     print('===> START send_mails <===')
@@ -105,9 +108,8 @@ def send_client(client, mailing):
         # отправляем данные, принимаем ответ, ждём 5 секунд
         response = requests.post(url=url + message.id, data=data, headers=headers, timeout=5)
         response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print(f'HTTPError: {e}')
-        return False
+
+    # исключения можно конкретизировать, если нужно
     except Exception as e:
         print(f'Ошибка: {e}')
         return False
@@ -122,11 +124,6 @@ def send_client(client, mailing):
             print(f'--- Message {message.id} sended: {message.__dict__} --- ')
 
             return True
-
-
-    # DEBUG #
-    print(f'Cant send Mailing {mailing.id}, response is: {response}')
-    return False
 
 
 # таск для перебора рассылок и отправки не отправленных
