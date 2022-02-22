@@ -15,7 +15,7 @@ class MailingViewSet(viewsets.ModelViewSet):
     queryset = Mailing.objects.all()
     serializer_class = MailingSerializer
 
-    # вывод статистики по отдельной странице
+    # вывод статистики по отдельной рассылке
     @action(detail=True)
     def stat(self, request, pk=None):
         queryset = Mailing.objects.all()

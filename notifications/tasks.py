@@ -22,24 +22,34 @@ def send_mails(mailing):
     # DEBUG
     print(f'=== send_mails task starts === with mailing id: ===> {mailing.id} <===')
 
-    # достаём фильтры для рассылки
-    tags = mailing.tags.all()
-    operators = mailing.operators.all()
+    # проверяем, запускалась ли уже рассылка:
+    # если сообщения уже есть, то запускалась,
+    # надо попробовать переслать те, что не получилось
+    if mailing.messages.exists():
+        finished = all([send_client(message.client, mailing)
+                        for message in mailing.messages.all()
+                        if message.sended is False])
 
-    # используем Q-объекты, чтобы искать сразу по двум параметрам с помощью оператора | (OR)
-    # получаем кверисет клиентов для рассылки
-    clients = Client.objects.filter(Q(tag__in=tags) | Q(operator__in=operators))
-    # берём только тех клиентов, которым не отсылали ничего, либо пытались, но не получилось
-    clients = clients.filter(Q(messages=None) | Q(messages__sended=False))
+    # если сообщений нет, то рассылка ещё не запускалась,
+    # формируем её
+    else:
 
+        # достаём фильтры для рассылки
+        tags = mailing.tags.all()
+        operators = mailing.operators.all()
 
-    # DEBUG
-    print('===> START send_mails <===')
-    print(clients, mailing.text)
+        # используем Q-объекты, чтобы искать сразу по двум параметрам с помощью оператора | (OR)
+        # получаем кверисет клиентов для рассылки
+        clients = Client.objects.filter(Q(tag__in=tags) | Q(operator__in=operators))
+        # берём только тех клиентов, которым не отсылали ничего, либо пытались, но не получилось
 
-    # перебор клиентов, запуск рассылки по ним и возврат ответов:
-    # если все True, то рассылка завершена и её можно закрывать
-    finished = all([send_client(client, mailing) for client in clients])
+        # DEBUG
+        print('===> START send_mails <===')
+        print(clients, mailing.text)
+
+        # перебор клиентов, запуск рассылки по ним и возврат ответов:
+        # если все True, то рассылка завершена и её можно закрывать
+        finished = all([send_client(client, mailing) for client in clients])
 
     # DEBUG
     print('===> END send_mails <===')
