@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404
 
 class MailingViewSet(viewsets.ModelViewSet):
     """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions for Mailing model
+    Используется вьюсет, который автоматически предоставляет методы
+    `list`, `create`, `retrieve`, `update` and `destroy` для модели Рассылка
     """
     queryset = Mailing.objects.all()
     serializer_class = MailingSerializer
@@ -18,6 +18,10 @@ class MailingViewSet(viewsets.ModelViewSet):
     # вывод статистики по отдельной рассылке
     @action(detail=True)
     def stat(self, request, pk=None):
+        """
+        Статистика по объекту конкретной рассылки
+        показывает продолжительность рассылки, сколько сообщений создано, сколько удалось отправить
+        """
         queryset = Mailing.objects.all()
         mailing = get_object_or_404(queryset, pk=pk)
         serializer = MailingStatSerializer(mailing)
@@ -26,6 +30,10 @@ class MailingViewSet(viewsets.ModelViewSet):
     # вывод статистики по всем рассылкам
     @action(detail=False)
     def allstat(self, request):
+        """
+        Выводит список всех рассылок со статистикой по каждой
+
+        """
         queryset = Mailing.objects.all()
         serializer = MailingStatSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -33,8 +41,8 @@ class MailingViewSet(viewsets.ModelViewSet):
 
 class ClientViewSet(viewsets.ModelViewSet):
     """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions for Client model
+    Используется вьюсет, который автоматически предоставляет методы
+    `list`, `create`, `retrieve`, `update` and `destroy` для модели Клиент
     """
     queryset = Client.objects.all()
     serializer_class = ClientSerializer
@@ -42,8 +50,8 @@ class ClientViewSet(viewsets.ModelViewSet):
 
 class MessageViewSet(viewsets.ModelViewSet):
     """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions for Message model
+    Используется вьюсет, который автоматически предоставляет методы
+    `list`, `create`, `retrieve`, `update` and `destroy` для модели Сообщение
     """
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
@@ -51,8 +59,8 @@ class MessageViewSet(viewsets.ModelViewSet):
 
 class OperatorViewSet(viewsets.ModelViewSet):
     """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions for Operator model
+    Используется вьюсет, который автоматически предоставляет методы
+    `list`, `create`, `retrieve`, `update` and `destroy` для модели Оператор
     """
     queryset = Operator.objects.all()
     serializer_class = OperatorSerializer
@@ -60,8 +68,8 @@ class OperatorViewSet(viewsets.ModelViewSet):
 
 class TagViewSet(viewsets.ModelViewSet):
     """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions for Tag model
+    Используется вьюсет, который автоматически предоставляет методы
+    `list`, `create`, `retrieve`, `update` and `destroy` для модели Тег
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer

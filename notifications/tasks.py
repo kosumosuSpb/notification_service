@@ -33,7 +33,6 @@ def send_mails(mailing):
     # если сообщений нет, то рассылка ещё не запускалась,
     # формируем её
     else:
-
         # достаём фильтры для рассылки
         tags = mailing.tags.all()
         operators = mailing.operators.all()
@@ -41,7 +40,6 @@ def send_mails(mailing):
         # используем Q-объекты, чтобы искать сразу по двум параметрам с помощью оператора | (OR)
         # получаем кверисет клиентов для рассылки
         clients = Client.objects.filter(Q(tag__in=tags) | Q(operator__in=operators))
-        # берём только тех клиентов, которым не отсылали ничего, либо пытались, но не получилось
 
         # DEBUG
         print('===> START send_mails <===')

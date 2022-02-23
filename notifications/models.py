@@ -62,9 +62,11 @@ class Client(models.Model):
 
 # Сущность "сообщение" - для логов, сюда складывается конкретный кейс с отправкой
 class Message(models.Model):
+    STATUS_CHOICES = [('Err', 'Error'), ('OK', 'Sent'), ('New', 'New'), ('BR', 'Bad Request')]
     create_datetime = models.DateTimeField(auto_now_add=True)  # дата и время создания
     sended_datetime = models.DateTimeField(blank=True, null=True)  # дата и время отправки
     sended = models.BooleanField(default=False)  # статус отправки (отправлено?)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='New')
     mailing = models.ForeignKey(Mailing, blank=True, on_delete=models.CASCADE, related_name='messages')  # id рассылки, в рамках которой было отправлено сообщение
     client = models.ForeignKey(Client, blank=True, on_delete=models.CASCADE, related_name='messages')  # id клиента, которому отправили
 
