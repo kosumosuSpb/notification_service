@@ -14,14 +14,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include, re_path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from notifications import views
-from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
-from django.views.generic import TemplateView
-from django.conf.urls import url
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
 # Create a router and register our viewsets with it.
@@ -32,33 +28,16 @@ router.register(r'message', views.MessageViewSet)
 router.register(r'operator', views.OperatorViewSet)
 router.register(r'tag', views.TagViewSet)
 
-schema_view = get_schema_view(  # new
-    openapi.Info(
-        title="Mailings API Docs",
-        default_version='v1',
-        description="Test description",
-        terms_of_service="https://www.google.com/policies/terms/",
-        contact=openapi.Contact(email="contact@mailing-service.local"),
-        license=openapi.License(name="BSD License"),
-    ),
-    # url=f'{settings.APP_URL}/api/v3/',
-    patterns=[path('api/', include(router.urls)), ],
-    public=True,
-    permission_classes=(permissions.AllowAny,),
-)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
+    # path('admin/', admin.site.urls),  # админа не использовал и не создавал
+    path('', include(router.urls)),
+    # path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),  # можно подключить авторизацию
 
-    # API UI DOCS
+    # OpenAPI 3 documentation with Swagger UI
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),  # YAML
     path(
-        'docs/', TemplateView.as_view(
-            template_name='swaggerui/swaggerui.html',
-            extra_context={'schema_url': 'openapi-schema'}
-        ), name='swagger-ui'),
-    url(r'^docs(?P<format>\.json|\.yaml)$',
-        schema_view.without_ui(cache_timeout=0),
-        name='schema-json'),
+        "docs/", SpectacularSwaggerView.as_view(template_name="swagger-ui.html", url_name="schema"), name="swagger-ui",
+    ),
 
 ]

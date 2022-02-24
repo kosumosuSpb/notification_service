@@ -139,17 +139,17 @@ def send_client(client, mailing):
 def check_and_send():
     """
     Перебирает рассылки и рассылает те, которые уже нужно и которые не просрочены
-
-    :return:
+    помечает те, которые просрочены
     """
     # собираем не отправленные рассылки, которые уже пора отправлять
     mailings_to_send = Mailing.objects.filter(finished=False, start_datetime__lte=datetime.now(), expired=False)
 
     # проходим по ним и запускаем на отправку, если они не просрочены
     for mailing in mailings_to_send:
-        if mailing.stop_datetime > datetime.now():
+        if mailing.stop_datetime > datetime.now() and not mailing.expired:
             send_mails(mailing)
         # если просрочены - помечаем, чтобы больше не трогать
-        else:
+        elif mailing.stop_datetime <= datetime.now() and not mailing.expired:
             mailing.expired = True
             mailing.save()
+

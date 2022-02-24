@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'notifications.apps.NotificationsConfig',
     'rest_framework',
-    'drf_yasg',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -63,10 +63,20 @@ CELERY_ACCEPT_CONTENT = ['application/json']  # допустимый форма�
 CELERY_TASK_SERIALIZER = 'json'  # метод сериализации задач
 CELERY_RESULT_SERIALIZER = 'json'  # метод сериализации результатов
 
+REST_FRAMEWORK = {
+    # пагинацию выключил, но можно включить
+    # "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    # "PAGE_SIZE": 10,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
 
-# указываем celery На планировщик из django-celery-beat
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Сервис уведомлений: API Docs',
+    'DESCRIPTION': 'Автоматическая документация по API '
+                   'для создания текстовых рассылок по телефонным номерам клиентов по тегам и операторам',
+    'VERSION': '1.0.0',
+    # OTHER SETTINGS
+}
 
 TEMPLATES = [
     {

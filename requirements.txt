@@ -8,7 +8,6 @@ click-plugins==1.1.1
 click-repl==0.2.0
 Deprecated==1.2.13
 Django==3.2.12
-django-celery-beat==2.2.1
 django-timezone-field==4.2.3
 djangorestframework==3.13.1
 kombu==5.2.3
@@ -25,3 +24,4 @@ vine==5.0.0
 wcwidth==0.2.5
 wrapt==1.13.3
 requests~=2.27.1
+drf_spectacular
