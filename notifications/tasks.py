@@ -1,9 +1,12 @@
 from celery import shared_task
 from .models import Mailing, Client, Message
 from django.db.models import Q
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import requests
+from django.utils import timezone
+from django.template.loader import render_to_string
+from django.core.mail import mail_admins
 
 
 def send_mails(mailing):
@@ -20,19 +23,26 @@ def send_mails(mailing):
     :return: None
     """
     # DEBUG
-    print(f'=== send_mails task starts === with mailing id: ===> {mailing.id} <===')
+    print(f'=== send_mails STARTS, id: => {mailing.id} <===')
 
     # проверяем, запускалась ли уже рассылка:
     # если сообщения уже есть, то запускалась,
     # надо попробовать переслать те, что не получилось
     if mailing.messages.exists():
+        # DEBUG
+        print('--- найдены недоставленные сообщения, попытка доставить... ---')
+
         finished = all([send_client(message.client, mailing)
                         for message in mailing.messages.all()
-                        if message.sended is False])
+                        if message.sent is False])
 
     # если сообщений нет, то рассылка ещё не запускалась,
     # формируем её
     else:
+        # DEBUG
+        print('--- создаём новую рассылку ---')
+        print('--- применяем фильтры... ---')
+
         # достаём фильтры для рассылки
         tags = mailing.tags.all()
         operators = mailing.operators.all()
@@ -51,10 +61,18 @@ def send_mails(mailing):
 
     # DEBUG
     print('===> END send_mails <===')
-    print(f'Finished: {finished}')
 
+    # если всё отправилось, то отмечаем рассылку, как завершённый
     mailing.finished = True if finished else False
+    mailing.finished_datetime = datetime.now(tz=timezone.utc)
     mailing.save()
+
+    # DEBUG
+    print('===> SAVING mailing... <===')
+    print(f'===> mailing.finished_datetime: {mailing.finished_datetime} <===')
+
+    # DEBUG
+    print(f'===> Finished: {finished} <===')
 
 
 # функция рассылки сообщения конкретному клиенту
@@ -77,6 +95,7 @@ def send_client(client, mailing):
     :param mailing: объект рассылки
     :return: True, если успех, False, - если нет
     """
+    # в проде должен быть в отдельном файле в гитигноре
     TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NzYxNDQ2NzMsImlzcyI6ImZhYnJpcXVlIiwibmFtZSI6ImtvbnN0YW50aW4uY2hlcm5vdiJ9.yx543hnuCBuib8ZlWmtmYq7EanWLAHwdkp7zYtd9dq8'
 
     # создаём экземпляр сообщения для отчётов
@@ -86,12 +105,11 @@ def send_client(client, mailing):
     if created:
         message.save()
 
-    # DEBUG
-    print(f'--- Message {message.id} created: {message.__dict__} --- ')
-
-    # DEBUG
-    print('---> START send_client <---')
-    print(client, mailing)
+        # DEBUG
+        print(f'--- Сообщение {message.id} создано --- ')
+    else:
+        # DEBUG
+        print(f'--- Сообщение {message.id} извлечено --- ')
 
     # подготовка и отправка рассылки клиенту
     # адрес внешнего сервиса отправки
@@ -112,9 +130,17 @@ def send_client(client, mailing):
         }
     )
 
+    # DEBUG
+    print('---> START send_client <---')
+    print(client, mailing, headers, data)
+
     try:
-        # отправляем данные, принимаем ответ, ждём 5 секунд
-        response = requests.post(url=url + message.id, data=data, headers=headers, timeout=5)
+        # отправляем данные, ждём ответа 5 секунд
+        response = requests.post(url=url + str(message.id), data=data, headers=headers, timeout=5)
+
+        # DEBUG
+        print(response)
+
         response.raise_for_status()
 
     # исключения можно конкретизировать, если нужно
@@ -124,8 +150,8 @@ def send_client(client, mailing):
     else:
         if response.status_code == requests.codes.ok:
             # Отмечаем, что отправка прошла успешно
-            message.sended_datetime = datetime.now()
-            message.sended = True
+            message.sent_datetime = datetime.now(tz=timezone.utc)
+            message.sent = True
             message.save()
 
             # DEBUG
@@ -141,15 +167,49 @@ def check_and_send():
     Перебирает рассылки и рассылает те, которые уже нужно и которые не просрочены
     помечает те, которые просрочены
     """
+    # DEBUG
+    print('=== START check_and_send TASK ===')
+
     # собираем не отправленные рассылки, которые уже пора отправлять
-    mailings_to_send = Mailing.objects.filter(finished=False, start_datetime__lte=datetime.now(), expired=False)
+    mailings_to_send = Mailing.objects.filter(finished=False,
+                                              start_datetime__lte=datetime.now(tz=timezone.utc),
+                                              expired=False)
+
+    # DEBUG
+    print(f'Что нашли: {mailings_to_send}')
 
     # проходим по ним и запускаем на отправку, если они не просрочены
     for mailing in mailings_to_send:
-        if mailing.stop_datetime > datetime.now() and not mailing.expired:
+        if mailing.stop_datetime > datetime.now(tz=timezone.utc) and not mailing.expired:
             send_mails(mailing)
+
         # если просрочены - помечаем, чтобы больше не трогать
-        elif mailing.stop_datetime <= datetime.now() and not mailing.expired:
+        elif mailing.stop_datetime <= datetime.now(tz=timezone.utc) and not mailing.expired:
             mailing.expired = True
             mailing.save()
+
+
+# таск по на e-mail раз в сутки стартовавших рассылок
+@shared_task()
+def send_finished_mailings():
+    """
+    раз в сутки отправляет статистику по обработанным рассылкам на email
+    """
+
+    # собираем стартовавшие рассылки за сутки
+    last_mailings = Mailing.objects.filter(start_datetime__gte=datetime.now(tz=timezone.utc) - timedelta(days=1))
+
+    subject = 'За прошедшие сутки было отправлено несколько рассылок'
+    text_message = 'За прошедшие сутки было отправлено несколько рассылок'
+
+    # рендерим в строку шаблон письма и передаём туда переменные, которые в нём используем
+    render_html_template = render_to_string('send_mailings.html',
+                                            {'mailings': last_mailings,
+                                             'subject': subject,
+                                             'text_message': text_message})
+
+    # формируем письмо
+    mail_admins(subject=subject, message=text_message, html_message=render_html_template)
+
+
 

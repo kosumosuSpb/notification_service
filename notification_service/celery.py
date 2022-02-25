@@ -23,9 +23,16 @@ app.config_from_object('django.conf:settings', namespace="CELERY")
 # расписание на запуск таска, который вытаскивает рассылки и запускает рассылку тех,
 # что должны быть отправлены, но ещё не завершены, при этом ещё не просрочены
 app.conf.beat_schedule = {
-    'check_and_resend_every_hour': {
+    'check_and_send_every_minute': {
         'task': 'notifications.tasks.check_and_send',
-        'schedule': crontab(minute=1),
+        'schedule': 60,
+        # 'args': (agrs),
+    },
+    'send_processed_mailings_every_day': {
+        'task': 'notifications.tasks.send_finished_mailings',
+        'schedule': crontab(hour=0, minute=0),
         # 'args': (agrs),
     },
 }
+
+app.autodiscover_tasks()

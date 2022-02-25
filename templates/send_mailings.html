@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+</head>
+<body>
+    <h2>{{ subject }}</h2>
+    <p>{{ text_message }}</p>
+    {% for mailing in last %}
+    <p><a href="{% url 'mailing-detail' mailing.id %}stat/" target="_blank">Рассылка {{ mailing.id }}</a></p>
+    {% endfor %}
+</body>
+</html>

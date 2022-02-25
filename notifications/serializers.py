@@ -14,8 +14,8 @@ class MailingStatSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'text', 'tags', 'operators',
             'start_datetime', 'finished_datetime', 'stop_datetime',
-            'duration',
-            'created_messages', 'sended_messages', 'unsended_messages',
+            'duration', 'expired',
+            'created_messages', 'sent_messages', 'unsent_messages',
         ]
 
 

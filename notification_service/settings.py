@@ -27,7 +27,7 @@ DEBUG = True
 
 SITE_ID = 1
 
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -95,6 +95,20 @@ TEMPLATES = [
     },
 ]
 
+# настройки рассылки почты
+EMAIL_HOST = 'smtp.yandex.ru'  # адрес сервера Яндекс-почты для всех один и тот же
+EMAIL_PORT = 465  # порт smtp сервера тоже одинаковый
+EMAIL_HOST_USER = ''  # имя пользователя
+EMAIL_HOST_PASSWORD = ''  # пароль от почты
+EMAIL_USE_SSL = True  # Яндекс использует ssl
+
+ADMINS = [
+    ('админ', 'admin@notifications.local'),
+    # список всех админов в формате ('имя', 'их почта')
+]
+
+SERVER_EMAIL = 'notifications_site@yandex.ru'  # FROM
+
 WSGI_APPLICATION = 'notification_service.wsgi.application'
 
 
@@ -135,7 +149,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'  # UTC+3
 
 USE_I18N = True
 

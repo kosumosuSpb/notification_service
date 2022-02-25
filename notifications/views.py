@@ -1,6 +1,3 @@
-from django.shortcuts import render
-from drf_spectacular.utils import extend_schema_view, extend_schema
-
 from .models import *
 from .serializers import *
 from rest_framework import generics, viewsets
@@ -34,7 +31,6 @@ class MailingViewSet(viewsets.ModelViewSet):
     def allstat(self, request):
         """
         Выводит список всех рассылок со статистикой по каждой
-
         """
         queryset = Mailing.objects.all()
         serializer = MailingStatSerializer(queryset, many=True)
