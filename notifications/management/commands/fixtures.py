@@ -36,16 +36,14 @@ class Command(BaseCommand):
             Client(phone_number='79219876543', utc='-2', tag=tag2).save()
             Client(phone_number='79215554422', utc='-5', tag=tag3).save()
 
-            # выводим всё, что создалось:
-            # если всё ок - выводим сообщение
+        # если какая-то ошибка - выводим её
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Ошибка: {e}'))
+
+        else:
+            # если всё ок - выводим сообщение с инфой о том, что создалось
             self.stdout.write(self.style.SUCCESS(
                 f'Теги: {Tag.objects.all()}, \n'
                 f'Операторы: {Operator.objects.all()}, \n'
                 f'Клиенты: {Client.objects.all()}'
             ))
-
-        #
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка: {e}'))
-
-

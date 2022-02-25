@@ -29,7 +29,7 @@ app.conf.beat_schedule = {
         # 'args': (agrs),
     },
     'send_processed_mailings_every_day': {
-        'task': 'notifications.tasks.send_finished_mailings',
+        'task': 'notifications.tasks.send_starting_mailings',  # раз в сутки отправляем стартовавшие рассылки
         'schedule': crontab(hour=0, minute=0),
         # 'args': (agrs),
     },
