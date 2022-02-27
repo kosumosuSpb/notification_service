@@ -155,16 +155,16 @@ def check_and_send():
 
     # проходим по ним и запускаем на отправку, если они не просрочены
     for mailing in mailings_to_send:
-        if mailing.stop_datetime > datetime.now(tz=timezone.utc) and not mailing.expired:
+        if mailing.stop_datetime > datetime.now(tz=timezone.utc):
             send_mailing(mailing)
 
         # если просрочены - помечаем, чтобы больше не трогать
-        elif mailing.stop_datetime <= datetime.now(tz=timezone.utc) and not mailing.expired:
+        elif mailing.stop_datetime <= datetime.now(tz=timezone.utc):
             mailing.expired = True
             mailing.save()
 
 
-# таск по на e-mail раз в сутки стартовавших рассылок
+# таск отправки стартовавших рассылок на e-mail раз в сутки
 @shared_task()
 def send_starting_mailings():
     """
@@ -186,5 +186,6 @@ def send_starting_mailings():
                                              'text_message': text_message})
 
     # формируем и отправляем письмо
+    # в письме будет простой HTML со ссылками на рассылки
     mail_admins(subject=subject, message=text_message, html_message=render_html_template)
-    logger.info('Отправляем рассылки')
+    logger.info('Отправляем рассылки на почту')
