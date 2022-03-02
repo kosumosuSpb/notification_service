@@ -23,10 +23,10 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 # Create a router and register our viewsets with it.
 router = DefaultRouter()
 router.register(r'mailings', views.MailingViewSet)
-router.register(r'client', views.ClientViewSet)
-router.register(r'message', views.MessageViewSet)
-router.register(r'operator', views.OperatorViewSet)
-router.register(r'tag', views.TagViewSet)
+router.register(r'clients', views.ClientViewSet)
+router.register(r'messages', views.MessageViewSet)
+router.register(r'operators', views.OperatorViewSet)
+router.register(r'tags', views.TagViewSet)
 
 
 urlpatterns = [

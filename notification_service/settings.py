@@ -167,5 +167,108 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# сюда положить настройки логгеров, хендлеров, формата, фильтров
-# LOGGING = {}
+# Настройки логгирования
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'main': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+
+    },
+    'handlers': {
+        'console-debug': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'filters': ['require_debug_true'],
+            'formatter': 'main'
+        },
+        'console-warn': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'filters': ['require_debug_true'],
+            'formatter': 'verbose'
+        },
+        'console-err': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'filters': ['require_debug_true'],
+            'formatter': 'verbose'
+        },
+        'general-info-log': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'formatter': 'verbose',
+            'filters': ['require_debug_false'],
+            'filename': 'general.log'
+        },
+        'general-debug-log': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'main',
+            'filters': ['require_debug_true'],
+            'filename': 'general-debug.log'
+        },
+        'security-log': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'formatter': 'verbose',
+            'filename': 'security.log'
+        },
+        'error-log': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'formatter': 'verbose',
+            'filename': 'errors.log'
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false'],
+            'formatter': 'verbose'
+        }
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console-warn', 'console-err', 'general-info-log', 'general-debug-log'],
+            'level': 'DEBUG',
+        },
+        'django.security': {
+            'handlers': ['security-log'],
+        },
+        'django.request': {
+            'handlers': ['mail_admins', 'error-log'],
+            'level': 'ERROR',
+        },
+        'django.server': {
+            'handlers': ['error-log'],
+            'level': 'ERROR',
+        },
+        'django.template': {
+            'handlers': ['error-log'],
+            'level': 'ERROR',
+        },
+        'django.db_backends': {
+            'handlers': ['error-log'],
+            'level': 'ERROR',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+}

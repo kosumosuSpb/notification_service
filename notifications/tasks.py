@@ -50,7 +50,7 @@ def send_mailing(mailing):
         # получаем кверисет клиентов для рассылки
         clients = Client.objects.filter(Q(tag__in=tags) | Q(operator__in=operators))
 
-        logger.debug(f'Клиенты на отправку: {clients}')
+        logger.debug(f'Клиентов на отправку: {len(clients)}')
 
         # перебор клиентов, запуск рассылки по ним и возврат ответов:
         # если все True, то рассылка завершена и её можно закрывать
@@ -118,13 +118,14 @@ def send_client(client, mailing):
         }
     )
 
+    logger.debug(fr'Данные на отправку клиенту {client.id} сформированы: {data}')
+
     try:
         # отправляем данные, ждём ответа 5 секунд
+        logger.debug(f'Отправка клиенту {client.id}...')
         response = requests.post(url=url + str(message.id), data=data, headers=headers, timeout=5)
 
-        # DEBUG
-        logger.debug(response)
-
+        logger.debug(f'Ответ внешнего сервиса: {response}')
         response.raise_for_status()
 
     # исключения можно конкретизировать, если нужно
@@ -148,20 +149,29 @@ def check_and_send():
     Перебирает рассылки и рассылает те, которые уже нужно и которые не просрочены
     помечает те, которые просрочены
     """
+    logger.info('Собираем рассылки на отправку...')
+
     # собираем не отправленные рассылки, которые уже пора отправлять
     mailings_to_send = Mailing.objects.filter(finished=False,
                                               start_datetime__lte=datetime.now(tz=timezone.utc),
                                               expired=False)
 
+    logger.info(f'Найдено рассылок на отправку: {len(mailings_to_send)}')
+
     # проходим по ним и запускаем на отправку, если они не просрочены
     for mailing in mailings_to_send:
         if mailing.stop_datetime > datetime.now(tz=timezone.utc):
+            logger.debug(f'Отправка рассылки {mailing.id}...')
             send_mailing(mailing)
 
         # если просрочены - помечаем, чтобы больше не трогать
         elif mailing.stop_datetime <= datetime.now(tz=timezone.utc):
+            logger.debug(f'Рассылка {mailing.id} просрочена, отмечаем')
             mailing.expired = True
             mailing.save()
+            logger.debug(f'Рассылка {mailing.id} помечена, как просроченная')
+
+    logger.info('Рассылка уведомлений завершена')
 
 
 # таск отправки стартовавших рассылок на e-mail раз в сутки
@@ -174,7 +184,7 @@ def send_starting_mailings():
 
     # собираем стартовавшие рассылки за сутки
     last_mailings = Mailing.objects.filter(start_datetime__gte=datetime.now(tz=timezone.utc) - timedelta(days=1))
-    logger.debug(f'Собранные рассылки: {last_mailings}')
+    logger.info(f'Найдено рассылок: {len(last_mailings)}')
 
     subject = 'За прошедшие сутки было запущено несколько рассылок'
     text_message = 'За прошедшие сутки было запущено несколько рассылок'
@@ -187,5 +197,7 @@ def send_starting_mailings():
 
     # формируем и отправляем письмо
     # в письме будет простой HTML со ссылками на рассылки
-    mail_admins(subject=subject, message=text_message, html_message=render_html_template)
     logger.info('Отправляем рассылки на почту')
+    logger.debug(f'Список рассылок: {last_mailings}')
+    mail_admins(subject=subject, message=text_message, html_message=render_html_template)
+    logger.info('Рассылки отправлены')
